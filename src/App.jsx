@@ -11,10 +11,11 @@ import {
   LogIn,
   FileText,
   SlidersHorizontal,
+  PlusCircle,
 } from "lucide-react";
 import "./App.css";
 
-const mockPosts = [
+const initialPosts = [
   {
     id: 1,
     course: "Software Engineering",
@@ -63,6 +64,17 @@ const initialProfile = {
     "I want to join a team where I can contribute to frontend implementation and UI flow design.",
 };
 
+const emptyPostForm = {
+  course: "Software Engineering",
+  title: "Looking for Project Member",
+  role: "Frontend Developer",
+  skills: "React, UI, Communication",
+  time: "Mon/Wed Evening",
+  recruitCount: 1,
+  description:
+    "We are looking for a teammate who can join our course project and contribute to the main implementation flow.",
+};
+
 function Pill({ children }) {
   return <span className="pill">{children}</span>;
 }
@@ -102,26 +114,67 @@ function Card({ children }) {
 export default function App() {
   const [screen, setScreen] = useState("login");
   const [profile, setProfile] = useState(initialProfile);
-  const [selectedPost, setSelectedPost] = useState(mockPosts[0]);
+  const [posts, setPosts] = useState(initialPosts);
+  const [postForm, setPostForm] = useState(emptyPostForm);
+  const [selectedPost, setSelectedPost] = useState(initialPosts[0]);
   const [filter, setFilter] = useState("All");
   const [requestStatus, setRequestStatus] = useState("Not Sent");
   const [toast, setToast] = useState("");
 
+  const filterOptions = useMemo(() => {
+    const courses = posts.map((post) => post.course);
+    const skills = posts.flatMap((post) => post.skills);
+    const times = posts.map((post) => post.time);
+    return ["All", ...new Set([...courses, ...skills, ...times])];
+  }, [posts]);
+
   const filteredPosts = useMemo(() => {
-    if (filter === "All") return mockPosts;
-    return mockPosts.filter(
+    if (filter === "All") return posts;
+    return posts.filter(
       (post) => post.course === filter || post.skills.includes(filter) || post.time === filter
     );
-  }, [filter]);
+  }, [filter, posts]);
 
   const showToast = (message) => {
     setToast(message);
     setTimeout(() => setToast(""), 1800);
   };
 
+  const handleCreatePost = () => {
+    const parsedSkills = postForm.skills
+      .split(",")
+      .map((skill) => skill.trim())
+      .filter(Boolean);
+
+    if (!postForm.title.trim() || !postForm.course.trim() || parsedSkills.length === 0) {
+      showToast("Please fill in required post information");
+      return;
+    }
+
+    const newPost = {
+      id: Date.now(),
+      course: postForm.course.trim(),
+      title: postForm.title.trim(),
+      role: postForm.role.trim() || "Team Member",
+      skills: parsedSkills,
+      time: postForm.time.trim() || "Flexible",
+      recruitCount: Number(postForm.recruitCount) || 1,
+      author: profile.name,
+      description: postForm.description.trim(),
+    };
+
+    setPosts([newPost, ...posts]);
+    setSelectedPost(newPost);
+    setFilter("All");
+    setRequestStatus("Not Sent");
+    setScreen("detail");
+    showToast("Team post created");
+  };
+
   const screens = [
     { id: "login", label: "Login", icon: LogIn },
     { id: "profile", label: "Profile", icon: UserRound },
+    { id: "create", label: "Create Post", icon: PlusCircle },
     { id: "posts", label: "Team Posts", icon: Users },
     { id: "detail", label: "Post Detail", icon: FileText },
     { id: "requests", label: "Request Management", icon: CheckCircle2 },
@@ -153,7 +206,7 @@ export default function App() {
 
           <div className="scope-box">
             <p className="scope-title">Demo Scope</p>
-            <p>Login → Profile → Search Posts → Send Join Request → Accept/Reject</p>
+            <p>Login → Profile → Create Post → Search Posts → Send Join Request → Accept/Reject</p>
           </div>
         </aside>
 
@@ -193,7 +246,7 @@ export default function App() {
                   <h3>Prototype Purpose</h3>
                   <p>
                     This prototype does not implement the full system. It validates the core flow defined in the
-                    system design: profile creation, team post browsing, join request sending, and request handling.
+                    system design: profile creation, team post creation, post browsing, join request sending, and request handling.
                   </p>
                 </div>
               </div>
@@ -236,7 +289,55 @@ export default function App() {
 
                 <div className="button-row">
                   <Button onClick={() => showToast("Profile saved")}>Save Profile</Button>
+                  <Button variant="outline" onClick={() => setScreen("create")}>Create Team Post</Button>
                   <Button variant="outline" onClick={() => setScreen("posts")}>Go to Team Posts</Button>
+                </div>
+              </Card>
+            </motion.div>
+          )}
+
+          {screen === "create" && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+              <Header
+                title="Create Team Post"
+                subtitle="Post authors enter structured recruitment conditions so applicants can compare teams clearly."
+              />
+
+              <Card>
+                <div className="form-grid">
+                  {[
+                    ["Course", "course"],
+                    ["Post Title", "title"],
+                    ["Required Role", "role"],
+                    ["Required Skills", "skills"],
+                    ["Available Time", "time"],
+                    ["Recruit Count", "recruitCount"],
+                  ].map(([label, key]) => (
+                    <div key={key} className="field">
+                      <label>{label}</label>
+                      <input
+                        type={key === "recruitCount" ? "number" : "text"}
+                        min={key === "recruitCount" ? "1" : undefined}
+                        value={postForm[key]}
+                        onChange={(e) => setPostForm({ ...postForm, [key]: e.target.value })}
+                      />
+                    </div>
+                  ))}
+
+                  <div className="field full-grid">
+                    <label>Description</label>
+                    <textarea
+                      value={postForm.description}
+                      onChange={(e) => setPostForm({ ...postForm, description: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                <div className="button-row">
+                  <Button onClick={handleCreatePost}>
+                    <PlusCircle size={18} /> Create Post
+                  </Button>
+                  <Button variant="outline" onClick={() => setScreen("posts")}>Back to Team Posts</Button>
                 </div>
               </Card>
             </motion.div>
@@ -249,15 +350,19 @@ export default function App() {
                 subtitle="Students can browse structured team recruitment posts and filter them by course, skill, or available time."
               />
 
+              <div className="button-row" style={{ marginBottom: 20 }}>
+                <Button onClick={() => setScreen("create")}>
+                  <PlusCircle size={18} /> Create New Post
+                </Button>
+              </div>
+
               <div className="filter-row">
                 <SlidersHorizontal size={18} />
-                {["All", "Software Engineering", "Computer Network", "React", "Node.js", "Mon/Wed Evening", "Weekend"].map(
-                  (item) => (
-                    <button key={item} onClick={() => setFilter(item)} className={`filter-chip ${filter === item ? "active" : ""}`}>
-                      {item}
-                    </button>
-                  )
-                )}
+                {filterOptions.map((item) => (
+                  <button key={item} onClick={() => setFilter(item)} className={`filter-chip ${filter === item ? "active" : ""}`}>
+                    {item}
+                  </button>
+                ))}
               </div>
 
               <div className="post-list">
@@ -279,6 +384,7 @@ export default function App() {
                       <Button
                         onClick={() => {
                           setSelectedPost(post);
+                          setRequestStatus("Not Sent");
                           setScreen("detail");
                         }}
                       >
@@ -333,6 +439,7 @@ export default function App() {
                   >
                     <Send size={18} /> Send Join Request
                   </Button>
+                  <Button variant="outline" onClick={() => setScreen("posts")}>Back to Team Posts</Button>
                   <Button variant="outline" onClick={() => setScreen("requests")}>Open Request Management</Button>
                 </div>
 
