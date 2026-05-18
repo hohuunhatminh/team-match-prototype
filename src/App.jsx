@@ -55,7 +55,7 @@ const initialPosts = [
 ];
 
 const initialProfile = {
-  name: "Ho Huynh Nhat Minh",
+  name: "Ho Huu Nhat Minh",
   major: "Computer Science",
   skills: "React, Next.js, C++, UI Design",
   role: "Frontend Developer",
