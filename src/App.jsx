@@ -1,0 +1,408 @@
+import React, { useMemo, useState } from "react";
+import { motion } from "framer-motion";
+import {
+  Search,
+  UserRound,
+  Users,
+  Send,
+  CheckCircle2,
+  XCircle,
+  Clock3,
+  LogIn,
+  FileText,
+  SlidersHorizontal,
+} from "lucide-react";
+import "./App.css";
+
+const mockPosts = [
+  {
+    id: 1,
+    course: "Software Engineering",
+    title: "Looking for Frontend Developer",
+    role: "Frontend Developer",
+    skills: ["React", "Next.js", "UI"],
+    time: "Mon/Wed Evening",
+    recruitCount: 1,
+    author: "Kim Minwoo",
+    description:
+      "We are building a student team matching platform. We need one member who can implement main UI screens and connect frontend flow.",
+  },
+  {
+    id: 2,
+    course: "Computer Network",
+    title: "Need Backend/API Member",
+    role: "Backend Developer",
+    skills: ["Node.js", "REST API", "Database"],
+    time: "Weekend",
+    recruitCount: 1,
+    author: "Lee Hana",
+    description:
+      "Our team needs a backend member who can design APIs and handle data flow for a network assignment dashboard.",
+  },
+  {
+    id: 3,
+    course: "Capstone Design",
+    title: "Recruiting UI/UX Designer",
+    role: "UI/UX Designer",
+    skills: ["Figma", "Wireframe", "UX"],
+    time: "Tue/Thu Afternoon",
+    recruitCount: 2,
+    author: "Park Jisoo",
+    description:
+      "We need a designer to create wireframes, user flow, and presentation-ready screens for our capstone service.",
+  },
+];
+
+const initialProfile = {
+  name: "Ho Huynh Nhat Minh",
+  major: "Computer Science",
+  skills: "React, Next.js, C++, UI Design",
+  role: "Frontend Developer",
+  time: "Mon/Wed Evening",
+  introduction:
+    "I want to join a team where I can contribute to frontend implementation and UI flow design.",
+};
+
+function Pill({ children }) {
+  return <span className="pill">{children}</span>;
+}
+
+function Button({ children, variant = "primary", onClick, className = "" }) {
+  return (
+    <button className={`btn ${variant === "outline" ? "btn-outline" : "btn-primary"} ${className}`} onClick={onClick}>
+      {children}
+    </button>
+  );
+}
+
+function StepButton({ icon: Icon, label, active, onClick }) {
+  return (
+    <button onClick={onClick} className={`step-button ${active ? "active" : ""}`}>
+      <Icon size={18} />
+      <span>{label}</span>
+    </button>
+  );
+}
+
+function Header({ title, subtitle }) {
+  return (
+    <div className="header-block">
+      <motion.h1 initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
+        {title}
+      </motion.h1>
+      <p>{subtitle}</p>
+    </div>
+  );
+}
+
+function Card({ children }) {
+  return <div className="card">{children}</div>;
+}
+
+export default function App() {
+  const [screen, setScreen] = useState("login");
+  const [profile, setProfile] = useState(initialProfile);
+  const [selectedPost, setSelectedPost] = useState(mockPosts[0]);
+  const [filter, setFilter] = useState("All");
+  const [requestStatus, setRequestStatus] = useState("Not Sent");
+  const [toast, setToast] = useState("");
+
+  const filteredPosts = useMemo(() => {
+    if (filter === "All") return mockPosts;
+    return mockPosts.filter(
+      (post) => post.course === filter || post.skills.includes(filter) || post.time === filter
+    );
+  }, [filter]);
+
+  const showToast = (message) => {
+    setToast(message);
+    setTimeout(() => setToast(""), 1800);
+  };
+
+  const screens = [
+    { id: "login", label: "Login", icon: LogIn },
+    { id: "profile", label: "Profile", icon: UserRound },
+    { id: "posts", label: "Team Posts", icon: Users },
+    { id: "detail", label: "Post Detail", icon: FileText },
+    { id: "requests", label: "Request Management", icon: CheckCircle2 },
+  ];
+
+  return (
+    <div className="app">
+      <div className="layout">
+        <aside className="sidebar">
+          <div className="brand">
+            <div className="brand-icon">
+              <Users size={22} />
+            </div>
+            <h2>TeamMatch Prototype</h2>
+            <p>Demo for system design validation using mock data.</p>
+          </div>
+
+          <nav className="nav-list">
+            {screens.map((item) => (
+              <StepButton
+                key={item.id}
+                icon={item.icon}
+                label={item.label}
+                active={screen === item.id}
+                onClick={() => setScreen(item.id)}
+              />
+            ))}
+          </nav>
+
+          <div className="scope-box">
+            <p className="scope-title">Demo Scope</p>
+            <p>Login → Profile → Search Posts → Send Join Request → Accept/Reject</p>
+          </div>
+        </aside>
+
+        <main className="main-panel">
+          {toast && (
+            <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="toast">
+              {toast}
+            </motion.div>
+          )}
+
+          {screen === "login" && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+              <Header
+                title="Login"
+                subtitle="This screen represents the starting point of the team project matching platform."
+              />
+              <div className="two-column">
+                <Card>
+                  <label>Email</label>
+                  <input defaultValue="minh@student.edu" />
+
+                  <label>Password</label>
+                  <input type="password" defaultValue="12345678" />
+
+                  <Button
+                    className="full-width"
+                    onClick={() => {
+                      setScreen("profile");
+                      showToast("Login successful");
+                    }}
+                  >
+                    <LogIn size={18} /> Login
+                  </Button>
+                </Card>
+
+                <div className="dark-info-box">
+                  <h3>Prototype Purpose</h3>
+                  <p>
+                    This prototype does not implement the full system. It validates the core flow defined in the
+                    system design: profile creation, team post browsing, join request sending, and request handling.
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {screen === "profile" && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+              <Header
+                title="Student Profile"
+                subtitle="Students enter structured information so other users can judge team fit more clearly."
+              />
+
+              <Card>
+                <div className="form-grid">
+                  {[
+                    ["Name", "name"],
+                    ["Major", "major"],
+                    ["Skills", "skills"],
+                    ["Preferred Role", "role"],
+                    ["Available Time", "time"],
+                  ].map(([label, key]) => (
+                    <div key={key} className="field">
+                      <label>{label}</label>
+                      <input
+                        value={profile[key]}
+                        onChange={(e) => setProfile({ ...profile, [key]: e.target.value })}
+                      />
+                    </div>
+                  ))}
+
+                  <div className="field full-grid">
+                    <label>Introduction</label>
+                    <textarea
+                      value={profile.introduction}
+                      onChange={(e) => setProfile({ ...profile, introduction: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                <div className="button-row">
+                  <Button onClick={() => showToast("Profile saved")}>Save Profile</Button>
+                  <Button variant="outline" onClick={() => setScreen("posts")}>Go to Team Posts</Button>
+                </div>
+              </Card>
+            </motion.div>
+          )}
+
+          {screen === "posts" && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+              <Header
+                title="Team Post List"
+                subtitle="Students can browse structured team recruitment posts and filter them by course, skill, or available time."
+              />
+
+              <div className="filter-row">
+                <SlidersHorizontal size={18} />
+                {["All", "Software Engineering", "Computer Network", "React", "Node.js", "Mon/Wed Evening", "Weekend"].map(
+                  (item) => (
+                    <button key={item} onClick={() => setFilter(item)} className={`filter-chip ${filter === item ? "active" : ""}`}>
+                      {item}
+                    </button>
+                  )
+                )}
+              </div>
+
+              <div className="post-list">
+                {filteredPosts.map((post) => (
+                  <Card key={post.id}>
+                    <div className="post-card-content">
+                      <div>
+                        <p className="eyebrow">{post.course}</p>
+                        <h3>{post.title}</h3>
+                        <div className="pill-row">
+                          <Pill>{post.role}</Pill>
+                          <Pill>{post.time}</Pill>
+                          {post.skills.map((skill) => (
+                            <Pill key={skill}>{skill}</Pill>
+                          ))}
+                        </div>
+                      </div>
+
+                      <Button
+                        onClick={() => {
+                          setSelectedPost(post);
+                          setScreen("detail");
+                        }}
+                      >
+                        <Search size={17} /> View Detail
+                      </Button>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            </motion.div>
+          )}
+
+          {screen === "detail" && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+              <Header
+                title="Post Detail"
+                subtitle="This page shows detailed recruitment conditions before the student sends a join request."
+              />
+
+              <Card>
+                <p className="eyebrow">{selectedPost.course}</p>
+                <h2 className="detail-title">{selectedPost.title}</h2>
+                <p className="description">{selectedPost.description}</p>
+
+                <div className="info-grid">
+                  <div>
+                    <p>Required Role</p>
+                    <strong>{selectedPost.role}</strong>
+                  </div>
+                  <div>
+                    <p>Available Time</p>
+                    <strong>{selectedPost.time}</strong>
+                  </div>
+                  <div>
+                    <p>Recruit Count</p>
+                    <strong>{selectedPost.recruitCount}</strong>
+                  </div>
+                </div>
+
+                <div className="pill-row spaced">
+                  {selectedPost.skills.map((skill) => (
+                    <Pill key={skill}>{skill}</Pill>
+                  ))}
+                </div>
+
+                <div className="button-row">
+                  <Button
+                    onClick={() => {
+                      setRequestStatus("Pending");
+                      showToast("Join request sent");
+                    }}
+                  >
+                    <Send size={18} /> Send Join Request
+                  </Button>
+                  <Button variant="outline" onClick={() => setScreen("requests")}>Open Request Management</Button>
+                </div>
+
+                <div className="status-box">
+                  <p>Request Status</p>
+                  <span>
+                    <Clock3 size={17} /> {requestStatus}
+                  </span>
+                </div>
+              </Card>
+            </motion.div>
+          )}
+
+          {screen === "requests" && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+              <Header
+                title="Request Management"
+                subtitle="The post author checks incoming join requests and accepts or rejects them."
+              />
+
+              <Card>
+                <div className="request-layout">
+                  <div>
+                    <p className="eyebrow">Incoming Request</p>
+                    <h2>Request from {profile.name}</h2>
+                    <p className="description">{profile.introduction}</p>
+
+                    <div className="pill-row spaced">
+                      <Pill>{profile.major}</Pill>
+                      <Pill>{profile.role}</Pill>
+                      <Pill>{profile.time}</Pill>
+                      {profile.skills
+                        .split(",")
+                        .slice(0, 4)
+                        .map((skill) => (
+                          <Pill key={skill.trim()}>{skill.trim()}</Pill>
+                        ))}
+                    </div>
+                  </div>
+
+                  <div className="current-status">
+                    <p>Current Status</p>
+                    <strong>{requestStatus}</strong>
+                  </div>
+                </div>
+
+                <div className="button-row">
+                  <Button
+                    onClick={() => {
+                      setRequestStatus("Accepted");
+                      showToast("Request accepted");
+                    }}
+                  >
+                    <CheckCircle2 size={18} /> Accept
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setRequestStatus("Rejected");
+                      showToast("Request rejected");
+                    }}
+                  >
+                    <XCircle size={18} /> Reject
+                  </Button>
+                </div>
+              </Card>
+            </motion.div>
+          )}
+        </main>
+      </div>
+    </div>
+  );
+}
