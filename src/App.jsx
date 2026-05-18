@@ -114,6 +114,8 @@ function Card({ children }) {
 export default function App() {
   const [screen, setScreen] = useState("login");
   const [profile, setProfile] = useState(initialProfile);
+  const [savedProfile, setSavedProfile] = useState(initialProfile);
+  const [profileSavedAt, setProfileSavedAt] = useState("Not saved yet");
   const [posts, setPosts] = useState(initialPosts);
   const [postForm, setPostForm] = useState(emptyPostForm);
   const [selectedPost, setSelectedPost] = useState(initialPosts[0]);
@@ -140,6 +142,28 @@ export default function App() {
     setTimeout(() => setToast(""), 1800);
   };
 
+  const handleSaveProfile = () => {
+    if (!profile.name.trim() || !profile.major.trim() || !profile.skills.trim()) {
+      showToast("Please fill in name, major, and skills");
+      return;
+    }
+
+    const normalizedProfile = {
+      ...profile,
+      name: profile.name.trim(),
+      major: profile.major.trim(),
+      skills: profile.skills.trim(),
+      role: profile.role.trim() || "Team Member",
+      time: profile.time.trim() || "Flexible",
+      introduction: profile.introduction.trim(),
+    };
+
+    setProfile(normalizedProfile);
+    setSavedProfile(normalizedProfile);
+    setProfileSavedAt(new Date().toLocaleString());
+    showToast("Profile saved");
+  };
+
   const handleCreatePost = () => {
     const parsedSkills = postForm.skills
       .split(",")
@@ -159,7 +183,7 @@ export default function App() {
       skills: parsedSkills,
       time: postForm.time.trim() || "Flexible",
       recruitCount: Number(postForm.recruitCount) || 1,
-      author: profile.name,
+      author: savedProfile.name,
       description: postForm.description.trim(),
     };
 
@@ -288,9 +312,19 @@ export default function App() {
                 </div>
 
                 <div className="button-row">
-                  <Button onClick={() => showToast("Profile saved")}>Save Profile</Button>
+                  <Button onClick={handleSaveProfile}>Save Profile</Button>
                   <Button variant="outline" onClick={() => setScreen("create")}>Create Team Post</Button>
                   <Button variant="outline" onClick={() => setScreen("posts")}>Go to Team Posts</Button>
+                </div>
+
+                <div className="status-box">
+                  <p>Saved Profile</p>
+                  <span>
+                    <CheckCircle2 size={17} /> {savedProfile.name} · {savedProfile.major} · {savedProfile.role}
+                  </span>
+                  <p style={{ marginTop: 10 }}>Skills: {savedProfile.skills}</p>
+                  <p>Available Time: {savedProfile.time}</p>
+                  <p>Last Saved: {profileSavedAt}</p>
                 </div>
               </Card>
             </motion.div>
@@ -464,14 +498,14 @@ export default function App() {
                 <div className="request-layout">
                   <div>
                     <p className="eyebrow">Incoming Request</p>
-                    <h2>Request from {profile.name}</h2>
-                    <p className="description">{profile.introduction}</p>
+                    <h2>Request from {savedProfile.name}</h2>
+                    <p className="description">{savedProfile.introduction}</p>
 
                     <div className="pill-row spaced">
-                      <Pill>{profile.major}</Pill>
-                      <Pill>{profile.role}</Pill>
-                      <Pill>{profile.time}</Pill>
-                      {profile.skills
+                      <Pill>{savedProfile.major}</Pill>
+                      <Pill>{savedProfile.role}</Pill>
+                      <Pill>{savedProfile.time}</Pill>
+                      {savedProfile.skills
                         .split(",")
                         .slice(0, 4)
                         .map((skill) => (
