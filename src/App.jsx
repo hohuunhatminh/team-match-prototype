@@ -12,6 +12,7 @@ import {
   FileText,
   SlidersHorizontal,
   PlusCircle,
+  ListChecks,
 } from "lucide-react";
 import "./App.css";
 
@@ -121,6 +122,7 @@ export default function App() {
   const [selectedPost, setSelectedPost] = useState(initialPosts[0]);
   const [filter, setFilter] = useState("All");
   const [requestStatus, setRequestStatus] = useState("Not Sent");
+  const [sentRequests, setSentRequests] = useState([]);
   const [toast, setToast] = useState("");
 
   const filterOptions = useMemo(() => {
@@ -136,6 +138,9 @@ export default function App() {
       (post) => post.course === filter || post.skills.includes(filter) || post.time === filter
     );
   }, [filter, posts]);
+
+  const selectedRequest = sentRequests.find((request) => request.postId === selectedPost.id);
+  const currentRequestStatus = selectedRequest?.status || requestStatus;
 
   const showToast = (message) => {
     setToast(message);
@@ -195,12 +200,50 @@ export default function App() {
     showToast("Team post created");
   };
 
+  const handleSendJoinRequest = () => {
+    const newRequest = {
+      id: Date.now(),
+      postId: selectedPost.id,
+      postTitle: selectedPost.title,
+      course: selectedPost.course,
+      role: selectedPost.role,
+      receiver: selectedPost.author,
+      applicant: savedProfile.name,
+      status: "Pending",
+      sentAt: new Date().toLocaleString(),
+    };
+
+    setSentRequests((prevRequests) => {
+      const alreadySent = prevRequests.some((request) => request.postId === selectedPost.id);
+      if (alreadySent) {
+        return prevRequests.map((request) =>
+          request.postId === selectedPost.id ? { ...request, status: "Pending", sentAt: newRequest.sentAt } : request
+        );
+      }
+      return [newRequest, ...prevRequests];
+    });
+
+    setRequestStatus("Pending");
+    showToast("Join request sent");
+  };
+
+  const updateSelectedRequestStatus = (status) => {
+    setRequestStatus(status);
+    setSentRequests((prevRequests) =>
+      prevRequests.map((request) =>
+        request.postId === selectedPost.id ? { ...request, status } : request
+      )
+    );
+    showToast(status === "Accepted" ? "Request accepted" : "Request rejected");
+  };
+
   const screens = [
     { id: "login", label: "Login", icon: LogIn },
     { id: "profile", label: "Profile", icon: UserRound },
     { id: "create", label: "Create Post", icon: PlusCircle },
     { id: "posts", label: "Team Posts", icon: Users },
     { id: "detail", label: "Post Detail", icon: FileText },
+    { id: "myRequests", label: "My Sent Requests", icon: ListChecks },
     { id: "requests", label: "Request Management", icon: CheckCircle2 },
   ];
 
@@ -230,7 +273,7 @@ export default function App() {
 
           <div className="scope-box">
             <p className="scope-title">Demo Scope</p>
-            <p>Login → Profile → Create Post → Search Posts → Send Join Request → Accept/Reject</p>
+            <p>Login → Profile → Create Post → Search Posts → Send Join Request → Track Request → Accept/Reject</p>
           </div>
         </aside>
 
@@ -270,7 +313,7 @@ export default function App() {
                   <h3>Prototype Purpose</h3>
                   <p>
                     This prototype does not implement the full system. It validates the core flow defined in the
-                    system design: profile creation, team post creation, post browsing, join request sending, and request handling.
+                    system design: profile creation, team post creation, post browsing, join request sending, request tracking, and request handling.
                   </p>
                 </div>
               </div>
@@ -418,7 +461,8 @@ export default function App() {
                       <Button
                         onClick={() => {
                           setSelectedPost(post);
-                          setRequestStatus("Not Sent");
+                          const request = sentRequests.find((item) => item.postId === post.id);
+                          setRequestStatus(request?.status || "Not Sent");
                           setScreen("detail");
                         }}
                       >
@@ -465,14 +509,10 @@ export default function App() {
                 </div>
 
                 <div className="button-row">
-                  <Button
-                    onClick={() => {
-                      setRequestStatus("Pending");
-                      showToast("Join request sent");
-                    }}
-                  >
+                  <Button onClick={handleSendJoinRequest}>
                     <Send size={18} /> Send Join Request
                   </Button>
+                  <Button variant="outline" onClick={() => setScreen("myRequests")}>My Sent Requests</Button>
                   <Button variant="outline" onClick={() => setScreen("posts")}>Back to Team Posts</Button>
                   <Button variant="outline" onClick={() => setScreen("requests")}>Open Request Management</Button>
                 </div>
@@ -480,10 +520,51 @@ export default function App() {
                 <div className="status-box">
                   <p>Request Status</p>
                   <span>
-                    <Clock3 size={17} /> {requestStatus}
+                    <Clock3 size={17} /> {currentRequestStatus}
                   </span>
                 </div>
               </Card>
+            </motion.div>
+          )}
+
+          {screen === "myRequests" && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+              <Header
+                title="My Sent Requests"
+                subtitle="Students can check the status of join requests they have already sent."
+              />
+
+              {sentRequests.length === 0 ? (
+                <Card>
+                  <p className="description">No join request has been sent yet. Open a post detail page and send a request first.</p>
+                  <div className="button-row">
+                    <Button onClick={() => setScreen("posts")}>Browse Team Posts</Button>
+                  </div>
+                </Card>
+              ) : (
+                <div className="post-list">
+                  {sentRequests.map((request) => (
+                    <Card key={request.id}>
+                      <div className="post-card-content">
+                        <div>
+                          <p className="eyebrow">{request.course}</p>
+                          <h3>{request.postTitle}</h3>
+                          <div className="pill-row">
+                            <Pill>{request.role}</Pill>
+                            <Pill>To: {request.receiver}</Pill>
+                            <Pill>Sent: {request.sentAt}</Pill>
+                          </div>
+                        </div>
+
+                        <div className="current-status">
+                          <p>Status</p>
+                          <strong>{request.status}</strong>
+                        </div>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              )}
             </motion.div>
           )}
 
@@ -516,28 +597,18 @@ export default function App() {
 
                   <div className="current-status">
                     <p>Current Status</p>
-                    <strong>{requestStatus}</strong>
+                    <strong>{currentRequestStatus}</strong>
                   </div>
                 </div>
 
                 <div className="button-row">
-                  <Button
-                    onClick={() => {
-                      setRequestStatus("Accepted");
-                      showToast("Request accepted");
-                    }}
-                  >
+                  <Button onClick={() => updateSelectedRequestStatus("Accepted")}>
                     <CheckCircle2 size={18} /> Accept
                   </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setRequestStatus("Rejected");
-                      showToast("Request rejected");
-                    }}
-                  >
+                  <Button variant="outline" onClick={() => updateSelectedRequestStatus("Rejected")}>
                     <XCircle size={18} /> Reject
                   </Button>
+                  <Button variant="outline" onClick={() => setScreen("myRequests")}>View Sent Requests</Button>
                 </div>
               </Card>
             </motion.div>
